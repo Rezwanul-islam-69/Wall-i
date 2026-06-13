@@ -118,10 +118,10 @@ wall-i/
 - [x] Deposit screen
 - [x] Shopping checklist with cost deduction
 - [x] Statistics screen — monthly chart & category breakdown
-- [x] PIN lock screen
-- [x] UI polish — animations & haptic feedback
-- [x] Transaction history filtering
-- [x] CSV / text export
+- [ ] PIN lock screen
+- [ ] UI polish — animations & haptic feedback
+- [ ] Transaction history filtering
+- [ ] CSV / text export
 - [ ] Multi-currency support
 - [ ] Cloud backup / sync
 - [ ] Widget support
