@@ -1,364 +1,256 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Svg, Circle } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
-import { BarChart } from 'react-native-chart-kit';
 import { getTransactions, Transaction } from '../storage/wallet';
 import { DEFAULT_SETTINGS, getSettings } from '../storage/settings';
+import { getThemeColors } from '../utils/theme';
 
-const { width } = Dimensions.get('window');
+const CATEGORY_RULES = [
+  {
+    label: 'Food',
+    keywords: ['lunch', 'dinner', 'breakfast', 'coffee', 'cafe', 'restaurant', 'meal', 'snack'],
+    color: '#FF7A7A',
+  },
+  {
+    label: 'Transport',
+    keywords: ['bus', 'train', 'taxi', 'auto', 'ride', 'fare', 'uber', 'bolt', 'rickshaw', 'fuel', 'petrol', 'transport'],
+    color: '#4FC1FF',
+  },
+  {
+    label: 'Utilities',
+    keywords: ['bill', 'electric', 'water', 'utility', 'internet', 'mobile', 'rent', 'subscription', 'wifi'],
+    color: '#FFD466',
+  },
+  {
+    label: 'Shopping',
+    keywords: ['shop', 'shopping', 'cart', 'mall', 'order', 'buy', '🛒', 'cart'],
+    color: '#B96CFF',
+  },
+];
 
-const C = {
-  bg: '#0F0F1E',
-  card: '#1A1A2E',
-  track: '#2A2A3E',
-  accent: '#6C63FF',
-  green: '#4CAF50',
-  red: '#FF6B6B',
-  orange: '#FF9800',
-  text: '#FFFFFF',
-  sub: '#A0A0B0',
-};
+const defaultCategoryColors = ['#6C63FF', '#FFB54D', '#34D399', '#F472B6', '#60A5FA'];
 
-function getMonthTxns(txns: Transaction[], month: Date) {
-  return txns.filter((t) => {
-    const d = new Date(t.date);
-    return (
-      d.getMonth() === month.getMonth() &&
-      d.getFullYear() === month.getFullYear()
-    );
-  });
+function parseGbDate(dateString: string) {
+  const parts = dateString.split('/').map((part) => Number(part));
+  if (parts.length === 3 && parts.every((value) => Number.isFinite(value))) {
+    const [day, month, year] = parts;
+    return new Date(year, month - 1, day);
+  }
+  return new Date(dateString);
 }
 
-/** Bucket expenses into 5 weekly slots for the month */
-function buildWeeklyExpenses(txns: Transaction[]): number[] {
-  const weeks = [0, 0, 0, 0, 0];
-  txns
-    .filter((t) => t.type !== 'deposit')
-    .forEach((t) => {
-      const day = new Date(t.date).getDate();
-      const idx = Math.min(Math.floor((day - 1) / 7), 4);
-      weeks[idx] += t.amount;
-    });
-  return weeks;
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function categorizeExpense(txn: Transaction) {
+  const note = txn.note.toLowerCase();
+  if (txn.type === 'shopping') {
+    return 'Shopping';
+  }
+
+  for (const rule of CATEGORY_RULES) {
+    if (rule.keywords.some((keyword) => note.includes(keyword))) {
+      return rule.label;
+    }
+  }
+
+  if (note.includes('expense') || note.includes('spend') || note.includes('shopping')) {
+    return 'Other';
+  }
+  return 'Other';
 }
 
-function SummaryCard({
-  label,
-  amount,
-  color,
-  symbol,
-}: {
-  label: string;
-  amount: number;
-  color: string;
-  symbol: string;
-}) {
-  return (
-    <View style={[s.summaryCard, { borderLeftColor: color }]}> 
-      <Text style={s.summaryLabel}>{label}</Text>
-      <Text style={[s.summaryAmount, { color }]}>{symbol}{fmt(amount)}</Text>
-    </View>
-  );
-}
-
-function CategoryBar({
-  label,
-  amount,
-  total,
-  color,
-  symbol,
-}: {
-  label: string;
-  amount: number;
-  total: number;
-  color: string;
-  symbol: string;
-}) {
-  const pct = total > 0 ? (amount / total) * 100 : 0;
-  return (
-    <View style={s.categoryItem}>
-      <View style={s.categoryHeader}>
-        <Text style={s.categoryLabel}>{label}</Text>
-        <Text style={[s.categoryPct, { color }]}> 
-          {symbol}{fmt(amount)}  {pct.toFixed(0)}%
-        </Text>
-      </View>
-      <View style={s.barTrack}>
-        <View style={[s.barFill, { width: `${pct}%` as any, backgroundColor: color }]} />
-      </View>
-    </View>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <View style={s.pill}>
-      <Text style={[s.pillValue, { color }]}>{value}</Text>
-      <Text style={s.pillLabel}>{label}</Text>
-    </View>
-  );
+function fmt(value: number) {
+  return value.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export default function StatisticsScreen() {
-  const [allTxns, setAllTxns] = useState<Transaction[]>([]);
-  const [month, setMonth] = useState(new Date());
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const colors = getThemeColors(settings);
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        const txns = await getTransactions();
+        const stored = await getTransactions();
         const savedSettings = await getSettings();
-        setAllTxns(txns);
+        setTransactions(stored);
         setSettings(savedSettings);
       };
       load();
     }, [])
   );
 
-  const txns = getMonthTxns(allTxns, month);
+  const today = new Date();
+  const todayTransactions = transactions.filter((txn) => isSameDay(parseGbDate(txn.date), today));
+  const todayExpenses = todayTransactions.filter((txn) => txn.type !== 'deposit');
+  const totalSpent = todayExpenses.reduce((sum, txn) => sum + txn.amount, 0);
+  const totalDeposited = todayTransactions
+    .filter((txn) => txn.type === 'deposit')
+    .reduce((sum, txn) => sum + txn.amount, 0);
 
-  const totalDeposit = txns
-    .filter((t) => t.type === 'deposit')
-    .reduce((s, t) => s + t.amount, 0);
-  const totalSpend = txns
-    .filter((t) => t.type === 'spend')
-    .reduce((s, t) => s + t.amount, 0);
-  const totalShopping = txns
-    .filter((t) => t.type === 'shopping')
-    .reduce((s, t) => s + t.amount, 0);
-  const totalExpense = totalSpend + totalShopping;
-  const net = totalDeposit - totalExpense;
+  const categoryTotals = todayExpenses.reduce<Record<string, number>>((acc, txn) => {
+    const category = categorizeExpense(txn);
+    acc[category] = (acc[category] || 0) + txn.amount;
+    return acc;
+  }, {});
 
-  const weeklyData = buildWeeklyExpenses(txns);
-  const hasChartData = weeklyData.some((v) => v > 0);
+  const segments = Object.entries(categoryTotals)
+    .filter(([, amount]) => amount > 0)
+    .map(([label, amount], index) => {
+      const rule = CATEGORY_RULES.find((entry) => entry.label === label);
+      return {
+        label,
+        amount,
+        color: rule?.color ?? defaultCategoryColors[index % defaultCategoryColors.length],
+        percent: totalSpent > 0 ? amount / totalSpent : 0,
+      };
+    });
 
-  const prevMonth = () => {
-    const d = new Date(month);
-    d.setMonth(d.getMonth() - 1);
-    setMonth(d);
-  };
+  const donutRadius = 50;
+  const circumference = 2 * Math.PI * donutRadius;
+  let dashOffset = 0;
 
-  const nextMonth = () => {
-    const d = new Date(month);
-    d.setMonth(d.getMonth() + 1);
-    const now = new Date();
-    // don't go into the future
-    if (d.getFullYear() < now.getFullYear() ||
-        (d.getFullYear() === now.getFullYear() && d.getMonth() <= now.getMonth())) {
-      setMonth(d);
-    }
-  };
-
-  const monthLabel = month.toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const topCategory = segments.reduce((best, segment) => {
+    if (!best || segment.amount > best.amount) return segment;
+    return best;
+  }, null as { label: string; amount: number; color: string; percent: number } | null);
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content}>
-
-      <View style={s.monthRow}>
-        <TouchableOpacity onPress={prevMonth} style={s.monthBtn}>
-          <Text style={s.monthArrow}>‹</Text>
-        </TouchableOpacity>
-        <Text style={s.monthLabel}>{monthLabel}</Text>
-        <TouchableOpacity onPress={nextMonth} style={s.monthBtn}>
-          <Text style={s.monthArrow}>›</Text>
-        </TouchableOpacity>
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.content}>
+      <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+        <Text style={[styles.heroTitle, { color: colors.text }]}>Wellbeing dashboard</Text>
+        <Text style={[styles.heroSubtitle, { color: colors.sub }]}>An Android Digital Wellbeing-inspired snapshot of today’s spending.</Text>
       </View>
 
-      <View style={s.row}>
-        <SummaryCard label="Deposited" amount={totalDeposit} color={C.green} symbol={settings.currencySymbol} />
-        <SummaryCard label="Spent" amount={totalExpense} color={C.red} symbol={settings.currencySymbol} />
-      </View>
-
-      <View style={s.netCard}>
-        <View>
-          <Text style={s.netCardTitle}>Net This Month</Text>
-          <Text style={s.netCardSub}>Deposit minus all expenses</Text>
+      <View style={[styles.chartCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+        <View style={styles.chartWrap}>
+          <Svg width={220} height={220} viewBox="0 0 120 120">
+            <Circle cx="60" cy="60" r="58" fill={colors.card} />
+            {segments.map((segment) => {
+              const segmentLength = Math.max(segment.percent * circumference, 0.001);
+              const circle = (
+                <Circle
+                  key={segment.label}
+                  cx="60"
+                  cy="60"
+                  r={donutRadius}
+                  fill="none"
+                  stroke={segment.color}
+                  strokeWidth={18}
+                  strokeDasharray={`${segmentLength} ${circumference}`}
+                  strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
+                  transform="rotate(-90 60 60)"
+                />
+              );
+              dashOffset -= segmentLength;
+              return circle;
+            })}
+            <Circle cx="60" cy="60" r="36" fill={colors.surface} />
+          </Svg>
+          <View style={[styles.donutCenter, { backgroundColor: colors.surface }]}> 
+            <Text style={[styles.donutTitle, { color: colors.text }]}>{settings.currencySymbol}{fmt(totalSpent)}</Text>
+            <Text style={[styles.donutSubtitle, { color: colors.sub }]}>spent today</Text>
+          </View>
         </View>
-        <Text style={[s.netAmount, { color: net >= 0 ? C.green : C.red }]}>
-          {net >= 0 ? '+' : ''}{settings.currencySymbol}{fmt(net)}
-        </Text>
-      </View>
 
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Weekly Spending</Text>
-        {hasChartData ? (
-          <BarChart
-            data={{
-              labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
-              datasets: [{ data: weeklyData }],
-            }}
-            width={width - 48}
-            height={190}
-            yAxisLabel=""
-            yAxisSuffix=""
-            showValuesOnTopOfBars
-            fromZero
-            chartConfig={{
-              backgroundColor: C.card,
-              backgroundGradientFrom: C.card,
-              backgroundGradientTo: C.card,
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(108, 99, 255, ${opacity})`,
-              labelColor: () => C.sub,
-              barPercentage: 0.55,
-              propsForBackgroundLines: {
-                strokeDasharray: '',
-                stroke: C.track,
-                strokeWidth: 1,
-              },
-            }}
-            style={{ borderRadius: 10, marginTop: 8, marginLeft: -12 }}
-          />
-        ) : (
-          <Text style={s.empty}>No spending recorded this month</Text>
-        )}
-      </View>
-
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Expense Breakdown</Text>
-        {totalExpense > 0 ? (
-          <>
-            <CategoryBar
-              label="Quick Spend"
-              amount={totalSpend}
-              total={totalExpense}
-              color={C.red}
-              symbol={settings.currencySymbol}
-            />
-            <CategoryBar
-              label="Shopping"
-              amount={totalShopping}
-              total={totalExpense}
-              color={C.orange}
-              symbol={settings.currencySymbol}
-            />
-          </>
-        ) : (
-          <Text style={s.empty}>No expenses this month</Text>
-        )}
-      </View>
-
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Transaction Activity</Text>
-        <View style={s.pillRow}>
-          <StatPill
-            label="Deposits"
-            value={txns.filter((t) => t.type === 'deposit').length}
-            color={C.green}
-          />
-          <StatPill
-            label="Spends"
-            value={txns.filter((t) => t.type === 'spend').length}
-            color={C.red}
-          />
-          <StatPill
-            label="Shopping"
-            value={txns.filter((t) => t.type === 'shopping').length}
-            color={C.orange}
-          />
+        <View style={styles.legendList}>
+          {segments.length > 0 ? (
+            segments.map((segment) => (
+              <View key={segment.label} style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: segment.color }]} />
+                <View style={styles.legendTextArea}>
+                  <Text style={[styles.legendLabel, { color: colors.text }]}>{segment.label}</Text>
+                  <Text style={[styles.legendMeta, { color: colors.sub }]}> {settings.currencySymbol}{fmt(segment.amount)} · {Math.round(segment.percent * 100)}%</Text>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={[styles.emptyState, { color: colors.sub }]}>No expense activity recorded today.</Text>
+          )}
         </View>
       </View>
 
+      <View style={[styles.statsGrid, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: colors.sub }]}>Transactions</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{todayTransactions.length}</Text>
+        </View>
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: colors.sub }]}>Deposited</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{settings.currencySymbol}{fmt(totalDeposited)}</Text>
+        </View>
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: colors.sub }]}>Average expense</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {settings.currencySymbol}{fmt(todayExpenses.length ? totalSpent / todayExpenses.length : 0)}
+          </Text>
+        </View>
+        <View style={styles.statTile}>
+          <Text style={[styles.statLabel, { color: colors.sub }]}>Top category</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{topCategory?.label ?? 'None'}</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 }
 
-
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-
-  monthRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  monthBtn: {
-    width: 40, height: 40,
-    backgroundColor: C.card,
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  content: { padding: 18, paddingBottom: 28 },
+  heroCard: {
     borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 16,
+  },
+  heroTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  heroSubtitle: { fontSize: 14, lineHeight: 20 },
+  chartCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  chartWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  donutCenter: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  monthArrow: { color: C.text, fontSize: 26, lineHeight: 30 },
-  monthLabel: { color: C.text, fontSize: 18, fontWeight: '700' },
-
-  row: { flexDirection: 'row', marginBottom: 12 },
-  rowGap: { marginRight: 12 },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: C.card,
-    borderRadius: 14,
-    padding: 16,
-    borderLeftWidth: 4,
-  },
-  summaryLabel: { color: C.sub, fontSize: 12, marginBottom: 6 },
-  summaryAmount: { fontSize: 18, fontWeight: '700' },
-
-  netCard: {
-    backgroundColor: C.card,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
+  donutTitle: { fontSize: 20, fontWeight: '800' },
+  donutSubtitle: { fontSize: 12, marginTop: 4 },
+  legendList: { width: '100%', marginTop: 6 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  legendDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
+  legendTextArea: { flex: 1 },
+  legendLabel: { fontSize: 14, fontWeight: '700' },
+  legendMeta: { fontSize: 12, marginTop: 2 },
+  emptyState: { textAlign: 'center', fontSize: 14, paddingVertical: 18 },
+  statsGrid: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  netCardTitle: { color: C.text, fontSize: 15, fontWeight: '600' },
-  netCardSub: { color: C.sub, fontSize: 12, marginTop: 2 },
-  netAmount: { fontSize: 22, fontWeight: '800' },
-
-  card: {
-    backgroundColor: C.card,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
+  statTile: {
+    width: '48%',
+    marginBottom: 14,
   },
-  cardTitle: { color: C.text, fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  empty: { color: C.sub, textAlign: 'center', paddingVertical: 20, fontSize: 14 },
-
-  categoryItem: { marginTop: 12 },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  categoryLabel: { color: C.text, fontSize: 14 },
-  categoryPct: { fontSize: 13, fontWeight: '600' },
-  barTrack: {
-    height: 8,
-    backgroundColor: C.track,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: { height: '100%', borderRadius: 4 },
-
-  pillRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
-  pill: { alignItems: 'center', paddingVertical: 8 },
-  pillValue: { fontSize: 32, fontWeight: '800' },
-  pillLabel: { color: C.sub, fontSize: 12, marginTop: 2 },
+  statLabel: { fontSize: 12, marginBottom: 6 },
+  statValue: { fontSize: 18, fontWeight: '800' },
 });

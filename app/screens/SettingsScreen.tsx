@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { DEFAULT_SETTINGS, AppSettings, getSettings, saveSettings, AccentColor, ThemeMode } from '../storage/settings';
 import { resetWalletData } from '../storage/wallet';
+import { AppSettingsContext } from '../context/AppSettingsContext';
+import { getThemeColors } from '../utils/theme';
 
 const appearanceOptions: ThemeMode[] = ['dark', 'light', 'system'];
 const accentOptions: AccentColor[] = ['purple', 'cyan', 'green'];
@@ -48,6 +52,8 @@ const currencyOptions = [
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const { refreshSettings } = useContext(AppSettingsContext);
 
   const load = async () => {
     const stored = await getSettings();
@@ -58,9 +64,12 @@ export default function SettingsScreen() {
     load();
   }, []));
 
+  const colors = getThemeColors(settings);
+
   const handleSave = async (next: AppSettings) => {
     await saveSettings(next);
     setSettings(next);
+    await refreshSettings();
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
   };
@@ -82,6 +91,7 @@ export default function SettingsScreen() {
             await saveSettings(DEFAULT_SETTINGS);
             await resetWalletData();
             setSettings(DEFAULT_SETTINGS);
+            await refreshSettings();
             setSaved(true);
             setTimeout(() => setSaved(false), 1800);
           },
@@ -91,12 +101,12 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Settings</Text>
-      <Text style={styles.subtitle}>Customize app appearance, currency, and preferences.</Text>
+    <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.content}>
+      <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+      <Text style={[styles.subtitle, { color: colors.sub }]}>Customize app appearance, currency, and preferences.</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Appearance</Text>
         <View style={styles.optionRow}>
           {appearanceOptions.map((option) => (
             <TouchableOpacity
@@ -114,7 +124,7 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Accent color</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Accent color</Text>
         <View style={styles.optionRow}>
           {accentOptions.map((accent) => (
             <TouchableOpacity
@@ -133,44 +143,55 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Currency</Text>
-        {currencyOptions.map((currency) => (
-          <TouchableOpacity
-            key={currency.code}
-            style={[
-              styles.optionCard,
-              settings.currencyCode === currency.code && styles.optionCardActive,
-            ]}
-            onPress={() => setField({ currencyCode: currency.code, currencySymbol: currency.symbol })}
-          >
-            <Text style={[styles.optionLabel, settings.currencyCode === currency.code && styles.optionLabelActive]}>
-              {currency.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <View style={[styles.switchRow, { justifyContent: 'space-between' }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Currency</Text>
+        <TouchableOpacity style={styles.dropdownRow} onPress={() => setCurrencyModalVisible(true)}>
           <View>
-            <Text style={styles.sectionTitle}>Hints & tips</Text>
-            <Text style={styles.descriptionText}>Show guidance messages while you use the app.</Text>
+            <Text style={styles.optionLabel}>Selected currency</Text>
+            <Text style={styles.dropdownValue}>{settings.currencySymbol} {settings.currencyCode}</Text>
           </View>
-          <Switch
-            value={settings.enableHints}
-            onValueChange={(value) => setField({ enableHints: value })}
-            thumbColor={settings.enableHints ? '#6C63FF' : '#888'}
-            trackColor={{ false: '#444', true: '#6C63FF' }}
-          />
-        </View>
+          <Ionicons name="chevron-down" size={24} color={colors.accent} />
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.saveButton} onPress={() => handleSave(settings)}>
+      <Modal visible={currencyModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choose currency</Text>
+            <ScrollView>
+              {currencyOptions.map((currency) => (
+                <TouchableOpacity
+                  key={currency.code}
+                  style={[
+                    styles.optionCard,
+                    styles.dropdownItem,
+                    settings.currencyCode === currency.code && styles.optionCardActive,
+                  ]}
+                  onPress={() => {
+                    setField({ currencyCode: currency.code, currencySymbol: currency.symbol });
+                    setCurrencyModalVisible(false);
+                  }}
+                >
+                  <Text style={[styles.optionLabel, settings.currencyCode === currency.code && styles.optionLabelActive]}>
+                    {currency.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.closeDropdown} onPress={() => setCurrencyModalVisible(false)}>
+              <Text style={styles.closeDropdownLabel}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+
+
+      <TouchableOpacity style={[styles.saveButton, { backgroundColor: colors.accent }]} onPress={() => handleSave(settings)}>
         <Text style={styles.saveLabel}>{saved ? 'Saved ✓' : 'Save settings'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.resetAllButton} onPress={handleResetAll}>
-        <Text style={styles.resetAllLabel}>Reset all settings to default</Text>
+      <TouchableOpacity style={[styles.resetAllButton, { borderColor: colors.accent }]} onPress={handleResetAll}>
+        <Text style={[styles.resetAllLabel, { color: colors.accent }]}>Reset all settings to default</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -199,6 +220,24 @@ const styles = StyleSheet.create({
   optionCardActive: { borderColor: '#6C63FF', backgroundColor: '#1F2656' },
   optionLabel: { color: '#B0B8D9', fontSize: 14, fontWeight: '600' },
   optionLabelActive: { color: '#FFFFFF' },
+  dropdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#131B3A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#262E52',
+  },
+  dropdownValue: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', marginTop: 6 },
+  dropdownArrow: { color: '#6C63FF', fontSize: 18, fontWeight: '700' },
+  dropdownItem: { marginBottom: 10 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#141B3E', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: '70%' },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '800', marginBottom: 16 },
+  closeDropdown: { marginTop: 10, backgroundColor: '#1F2656', borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+  closeDropdownLabel: { color: '#6C63FF', fontSize: 15, fontWeight: '700' },
   colorSwatch: {
     width: 46,
     height: 46,

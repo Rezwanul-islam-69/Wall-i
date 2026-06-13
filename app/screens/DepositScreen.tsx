@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getBalance, saveBalance, addTransaction } from '../storage/wallet';
 import { DEFAULT_SETTINGS, getSettings } from '../storage/settings';
+import { getThemeColors } from '../utils/theme';
 
 export default function DepositScreen() {
   const [balance, setBalanceState] = useState(0);
@@ -24,6 +25,8 @@ export default function DepositScreen() {
     };
     load();
   }, []));
+
+  const colors = getThemeColors(settings);
 
   const handleDeposit = async () => {
     const amt = parseFloat(amount);
@@ -45,22 +48,22 @@ export default function DepositScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F1E" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}> 
+      <StatusBar barStyle={settings.theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={colors.bg} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.content}>
-          <Text style={styles.title}>Add Money</Text>
-          <Text style={styles.subtitle}>CURRENT BALANCE</Text>
-          <Text style={styles.balance}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
-          <View style={styles.card}>
+          <Text style={[styles.title, { color: colors.text }]}>Add Money</Text>
+          <Text style={[styles.subtitle, { color: colors.sub }]}>CURRENT BALANCE</Text>
+          <Text style={[styles.balance, { color: colors.accent }]}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
             <View style={styles.iconRow}>
               <Ionicons name="arrow-down-circle" size={52} color="#4CAF50" />
             </View>
-            <TextInput style={styles.input} placeholder="Amount to add (৳)" placeholderTextColor="#555"
+            <TextInput style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]} placeholder="Amount to add (৳)" placeholderTextColor="#555"
               keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
-            <TextInput style={styles.input} placeholder="Note (Salary, Gift...)" placeholderTextColor="#555"
+            <TextInput style={[styles.input, { backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]} placeholder="Note (Salary, Gift...)" placeholderTextColor="#555"
               value={note} onChangeText={setNote} />
-            <TouchableOpacity style={[styles.depositBtn, success && styles.depositBtnSuccess]}
+            <TouchableOpacity style={[styles.depositBtn, { backgroundColor: colors.accent }, success && styles.depositBtnSuccess]}
               onPress={handleDeposit} activeOpacity={0.8}>
               <Ionicons name={success ? 'checkmark-circle' : 'add-circle-outline'} size={22} color="#fff" />
               <Text style={styles.depositBtnText}>{success ? '✓ Added!' : 'Add to Wallet'}</Text>

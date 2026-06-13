@@ -6,12 +6,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getBalance, saveBalance, getTransactions, addTransaction, Transaction } from '../storage/wallet';
 import { DEFAULT_SETTINGS, getSettings } from '../storage/settings';
+import { getThemeColors } from '../utils/theme';
 import BrandLogo from '../components/BrandLogo';
 
 export default function HomeScreen() {
+  const navigation = useNavigation();
   const [balance, setBalanceState] = useState(0);
   const [balanceVisible, setBalanceVisible] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -30,6 +32,9 @@ export default function HomeScreen() {
   };
 
   useFocusEffect(useCallback(() => { loadData(); }, []));
+
+  const colors = getThemeColors(settings);
+  const accent = colors.accent;
 
   const handleSpend = async () => {
     const amt = parseFloat(amount);
@@ -55,41 +60,44 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F1E" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}> 
+      <StatusBar barStyle={settings.theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={colors.bg} />
       <View style={styles.pageHeader}>
-        <Text style={styles.headerTitle}>Home</Text>
-      </View>
-      <View style={styles.logoSection}>
-        <BrandLogo size={48} />
-        <View style={styles.logoText}>
-          <Text style={styles.logoName}>Wall-i</Text>
-          <Text style={styles.logoTagline}>Your Money, Under Control</Text>
+        <View style={styles.logoSection}>
+          <BrandLogo size={96} />
+          <View style={styles.logoText}>
+            <Text style={[styles.logoName, { color: colors.text }]}>Wall-i</Text>
+            <Text style={[styles.logoTagline, { color: colors.accent }]}>Your Money, under control</Text>
+          </View>
         </View>
       </View>
-      <TouchableOpacity style={styles.balanceCard} onPress={() => setBalanceVisible(!balanceVisible)} activeOpacity={0.8}>
+      <View style={[styles.balanceCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={styles.balanceLabel}>YOUR BALANCE</Text>
         {balanceVisible ? (
           <Text style={styles.balanceAmount}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
         ) : (
-          <View style={styles.balanceHidden}>
-            <Ionicons name="eye-off-outline" size={32} color="#6C63FF" />
+          <TouchableOpacity style={styles.balanceHidden} onPress={() => setBalanceVisible(true)} activeOpacity={0.8}>
+            <Ionicons name="eye-off-outline" size={32} color={colors.accent} />
             <Text style={styles.tapText}>Tap to reveal</Text>
-          </View>
+          </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.spendButton} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
-          <View style={styles.spendButtonInner}>
-            <Ionicons name="remove" size={32} color="#fff" />
-          </View>
-          <Text style={styles.spendButtonLabel}>TAP TO SPEND</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.accent }]} onPress={() => setModalVisible(true)} activeOpacity={0.85}>
+            <Ionicons name="remove" size={22} color="#fff" />
+            <Text style={styles.actionButtonText}>Spend</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: settings.theme === 'light' ? '#1F2656' : '#252D53' }]} onPress={() => navigation.navigate('Deposit')} activeOpacity={0.85}>
+            <Ionicons name="add" size={22} color="#fff" />
+            <Text style={styles.actionButtonText}>Deposit</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
       <View style={styles.txnContainer}>
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
         {transactions.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="receipt-outline" size={48} color="#222" />
-            <Text style={styles.emptyText}>No transactions yet</Text>
+            <Ionicons name="receipt-outline" size={48} color={colors.border} />
+            <Text style={[styles.emptyText, { color: colors.sub }]}>No transactions yet</Text>
           </View>
         ) : (
           <FlatList
@@ -97,17 +105,17 @@ export default function HomeScreen() {
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
-              <View style={styles.txnItem}>
+              <View style={[styles.txnItem, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={[styles.txnIconBox, { backgroundColor: item.type === 'deposit' ? '#1A3A2A' : '#3A1A1A' }]}>
                   <Ionicons name={item.type === 'deposit' ? 'arrow-down' : 'arrow-up'} size={18}
                     color={item.type === 'deposit' ? '#4CAF50' : '#FF6B6B'} />
                 </View>
                 <View style={styles.txnDetails}>
-                  <Text style={styles.txnNote}>{item.note}</Text>
-                  <Text style={styles.txnDate}>{item.date}</Text>
+                  <Text style={[styles.txnNote, { color: colors.text }]}>{item.note}</Text>
+                  <Text style={[styles.txnDate, { color: colors.sub }]}>{item.date}</Text>
                 </View>
                 <Text style={[styles.txnAmount, { color: item.type === 'deposit' ? '#4CAF50' : '#FF6B6B' }]}>
-                  {item.type === 'deposit' ? '+' : '-'}৳{item.amount.toFixed(2)}
+                  {item.type === 'deposit' ? '+' : '-'}{settings.currencySymbol}{item.amount.toFixed(2)}
                 </Text>
               </View>
             )}
@@ -159,9 +167,9 @@ const styles = StyleSheet.create({
   balanceAmount: { color: '#FFFFFF', fontSize: 42, fontWeight: '800', marginBottom: 24, letterSpacing: 0.5 },
   balanceHidden: { alignItems: 'center', marginBottom: 24 },
   tapText: { color: '#6C63FF', fontSize: 14, fontWeight: '600', marginTop: 8 },
-  spendButton: { alignItems: 'center' },
-  spendButtonInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#6C63FF', alignItems: 'center', justifyContent: 'center', elevation: 6 },
-  spendButtonLabel: { color: '#B8BEE5', fontSize: 11, letterSpacing: 1.5, marginTop: 8 },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 20 },
+  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 18, marginHorizontal: 4 },
+  actionButtonText: { color: '#fff', fontSize: 14, fontWeight: '700', marginLeft: 8 },
   txnContainer: { flex: 1, paddingHorizontal: 20 },
   sectionTitle: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', marginBottom: 12 },
   emptyState: { alignItems: 'center', marginTop: 40 },

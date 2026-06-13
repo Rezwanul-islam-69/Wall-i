@@ -9,7 +9,6 @@ export interface AppSettings {
   theme: ThemeMode;
   accent: AccentColor;
   maxTransactionLimit: number;
-  enableHints: boolean;
 }
 
 const SETTINGS_KEY = 'wallet_app_settings';
@@ -20,7 +19,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   accent: 'purple',
   maxTransactionLimit: 1000000,
-  enableHints: true,
 };
 
 const safeParse = <T>(value: string | null, fallback: T): T => {

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getBalance, saveBalance, addTransaction } from '../storage/wallet';
 import { DEFAULT_SETTINGS, getSettings } from '../storage/settings';
+import { getThemeColors } from '../utils/theme';
 
 interface ShoppingItem {
   id: string; name: string; estimatedPrice: string;
@@ -34,6 +35,8 @@ export default function ShoppingScreen() {
     };
     load();
   }, []));
+
+  const colors = getThemeColors(settings);
 
   const addItem = () => {
     if (!newItemName.trim()) { Alert.alert('Enter item name'); return; }
@@ -69,24 +72,24 @@ export default function ShoppingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F1E" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}> 
+      <StatusBar barStyle={settings.theme === 'light' ? 'dark-content' : 'light-content'} backgroundColor={colors.bg} />
       <View style={styles.header}>
-        <Text style={styles.title}>Shopping 🛒</Text>
-        <Text style={styles.balanceChip}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Shopping 🛒</Text>
+        <Text style={[styles.balanceChip, { color: colors.accent, borderColor: colors.border }]}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
       </View>
-      <View style={styles.addBox}>
-        <TextInput style={[styles.input, { flex: 2 }]} placeholder="Item name..." placeholderTextColor="#555"
+      <View style={[styles.addBox, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+        <TextInput style={[styles.input, { flex: 2, backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]} placeholder="Item name..." placeholderTextColor="#555"
           value={newItemName} onChangeText={setNewItemName} />
-        <TextInput style={[styles.input, { flex: 1, marginLeft: 8 }]} placeholder="Est.৳" placeholderTextColor="#555"
+        <TextInput style={[styles.input, { flex: 1, marginLeft: 8, backgroundColor: colors.input, borderColor: colors.border, color: colors.text }]} placeholder="Est.৳" placeholderTextColor="#555"
           keyboardType="decimal-pad" value={newItemPrice} onChangeText={setNewItemPrice} />
         <TouchableOpacity style={styles.addBtn} onPress={addItem}>
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
       {sessionTotal > 0 && (
-        <View style={styles.sessionBanner}>
-          <Text style={styles.sessionText}>Session Total: ৳{sessionTotal.toFixed(2)}</Text>
+        <View style={[styles.sessionBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+          <Text style={[styles.sessionText, { color: colors.accent }]}>Session Total: {settings.currencySymbol}{sessionTotal.toFixed(2)}</Text>
         </View>
       )}
       {items.length === 0 ? (
