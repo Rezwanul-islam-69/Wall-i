@@ -16,10 +16,33 @@ const appearanceOptions: ThemeMode[] = ['dark', 'light', 'system'];
 const accentOptions: AccentColor[] = ['purple', 'cyan', 'green'];
 const currencyOptions = [
   { label: '৳ Bangladeshi Taka', symbol: '৳', code: 'BDT' },
-  { label: '$ US Dollar', symbol: '$', code: 'USD' },
   { label: '₹ Indian Rupee', symbol: '₹', code: 'INR' },
+  { label: '₽ Russian Ruble', symbol: '₽', code: 'RUB' },
+  { label: '₩ South Korean Won', symbol: '₩', code: 'KRW' },
+  { label: '¥ Chinese Yuan', symbol: '¥', code: 'CNY' },
+  { label: '¥ Japanese Yen', symbol: '¥', code: 'JPY' },
+  { label: '₿ Bitcoin', symbol: '₿', code: 'BTC' },
+  { label: '₱ Philippine Peso', symbol: '₱', code: 'PHP' },
+  { label: '฿ Thai Baht', symbol: '฿', code: 'THB' },
+  { label: '₨ Pakistani Rupee', symbol: '₨', code: 'PKR' },
   { label: '€ Euro', symbol: '€', code: 'EUR' },
   { label: '£ British Pound', symbol: '£', code: 'GBP' },
+  { label: 'kr Danish Krone', symbol: 'kr', code: 'DKK' },
+  { label: 'kr Swedish Krona', symbol: 'kr', code: 'SEK' },
+  { label: 'kr Norwegian Krone', symbol: 'kr', code: 'NOK' },
+  { label: 'CHF Swiss Franc', symbol: 'CHF', code: 'CHF' },
+  { label: 'zł Polish Zloty', symbol: 'zł', code: 'PLN' },
+  { label: '$ US Dollar', symbol: '$', code: 'USD' },
+  { label: 'C$ Canadian Dollar', symbol: 'C$', code: 'CAD' },
+  { label: 'AU$ Australian Dollar', symbol: 'AU$', code: 'AUD' },
+  { label: 'NZ$ New Zealand Dollar', symbol: 'NZ$', code: 'NZD' },
+  { label: 'R$ Brazilian Real', symbol: 'R$', code: 'BRL' },
+  { label: '$ Mexican Peso', symbol: '$', code: 'MXN' },
+  { label: '$ Argentine Peso', symbol: '$', code: 'ARS' },
+  { label: '₪ Israeli Shekel', symbol: '₪', code: 'ILS' },
+  { label: 'ر.ع.‍ Arab Riyal', symbol: 'ر.ع.‍', code: 'AED' },
+  { label: '﷼ Iranian Rial', symbol: '﷼', code: 'IRR' },
+  { label: 'R South African Rand', symbol: 'R', code: 'ZAR' },
 ];
 
 export default function SettingsScreen() {
@@ -46,14 +69,6 @@ export default function SettingsScreen() {
     handleSave({ ...settings, ...field });
   };
 
-  const validateMax = (value: number) => {
-    if (value < 1000 || value > 1000000) {
-      Alert.alert('Limit must be between 1,000 and 10,00,000');
-      return false;
-    }
-    return true;
-  };
-
   const handleResetAll = async () => {
     Alert.alert(
       'Reset everything',
@@ -78,7 +93,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Settings</Text>
-      <Text style={styles.subtitle}>Customize app appearance, currency, and transaction limits.</Text>
+      <Text style={styles.subtitle}>Customize app appearance, currency, and preferences.</Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Appearance</Text>
@@ -133,22 +148,6 @@ export default function SettingsScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transaction limit</Text>
-        <View style={styles.limitRow}>
-          <Text style={styles.limitValue}>{settings.currencySymbol} {settings.maxTransactionLimit.toLocaleString()}</Text>
-          <TouchableOpacity
-            style={styles.resetButton}
-            onPress={() => setField({ maxTransactionLimit: DEFAULT_SETTINGS.maxTransactionLimit })}
-          >
-            <Text style={styles.resetLabel}>Reset</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.descriptionBox}>
-          <Text style={styles.descriptionText}>Maximum amount allowed per transaction. The app enforces a cap of 10,00,000.</Text>
-        </View>
       </View>
 
       <View style={styles.section}>

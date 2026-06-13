@@ -31,10 +31,6 @@ export default function DepositScreen() {
       Alert.alert('Invalid', 'Enter a valid amount');
       return;
     }
-    if (amt > settings.maxTransactionLimit) {
-      Alert.alert('Limit exceeded', `Maximum amount per transaction is ${settings.currencySymbol} ${settings.maxTransactionLimit.toLocaleString()}`);
-      return;
-    }
     const newBalance = balance + amt;
     await saveBalance(newBalance);
     await addTransaction({

@@ -13,6 +13,7 @@ import BrandLogo from '../components/BrandLogo';
 
 export default function HomeScreen() {
   const [balance, setBalanceState] = useState(0);
+  const [balanceVisible, setBalanceVisible] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [amount, setAmount] = useState('');
@@ -36,10 +37,6 @@ export default function HomeScreen() {
       Alert.alert('Invalid', 'Enter a valid amount');
       return;
     }
-    if (amt > settings.maxTransactionLimit) {
-      Alert.alert('Limit exceeded', `Maximum amount per transaction is ${settings.currencySymbol} ${settings.maxTransactionLimit.toLocaleString()}`);
-      return;
-    }
     if (amt > balance) {
       Alert.alert('Insufficient Balance', 'Not enough money!');
       return;
@@ -61,19 +58,32 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0F0F1E" />
       <View style={styles.pageHeader}>
-        <BrandLogo size={38} />
-        <Text style={styles.tagline}>Your smart wallet dashboard</Text>
+        <Text style={styles.headerTitle}>Home</Text>
       </View>
-      <View style={styles.balanceCard}>
+      <View style={styles.logoSection}>
+        <BrandLogo size={48} />
+        <View style={styles.logoText}>
+          <Text style={styles.logoName}>Wall-i</Text>
+          <Text style={styles.logoTagline}>Your Money, Under Control</Text>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.balanceCard} onPress={() => setBalanceVisible(!balanceVisible)} activeOpacity={0.8}>
         <Text style={styles.balanceLabel}>YOUR BALANCE</Text>
-        <Text style={styles.balanceAmount}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
+        {balanceVisible ? (
+          <Text style={styles.balanceAmount}>{settings.currencySymbol} {balance.toFixed(2)}</Text>
+        ) : (
+          <View style={styles.balanceHidden}>
+            <Ionicons name="eye-off-outline" size={32} color="#6C63FF" />
+            <Text style={styles.tapText}>Tap to reveal</Text>
+          </View>
+        )}
         <TouchableOpacity style={styles.spendButton} onPress={() => setModalVisible(true)} activeOpacity={0.8}>
           <View style={styles.spendButtonInner}>
             <Ionicons name="remove" size={32} color="#fff" />
           </View>
           <Text style={styles.spendButtonLabel}>TAP TO SPEND</Text>
         </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
       <View style={styles.txnContainer}>
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
         {transactions.length === 0 ? (
@@ -127,10 +137,12 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F0F1E' },
-  pageHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, paddingHorizontal: 20, paddingBottom: 12 },
-  tagline: { color: '#B0B8D9', fontSize: 13, maxWidth: '70%', lineHeight: 20, marginLeft: 10 },
-  appTitle: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: 2 },
-  appEmoji: { fontSize: 24 },
+  pageHeader: { paddingTop: 20, paddingHorizontal: 20, paddingBottom: 12 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#FFFFFF' },
+  logoSection: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 24 },
+  logoText: { marginLeft: 14 },
+  logoName: { fontSize: 24, fontWeight: '800', color: '#FFFFFF', letterSpacing: 1 },
+  logoTagline: { color: '#6C63FF', fontSize: 12, fontWeight: '600', marginTop: 2 },
   balanceCard: {
     margin: 20,
     backgroundColor: '#141B3E',
@@ -145,6 +157,8 @@ const styles = StyleSheet.create({
   },
   balanceLabel: { color: '#8A92B2', fontSize: 12, marginBottom: 8, letterSpacing: 2 },
   balanceAmount: { color: '#FFFFFF', fontSize: 42, fontWeight: '800', marginBottom: 24, letterSpacing: 0.5 },
+  balanceHidden: { alignItems: 'center', marginBottom: 24 },
+  tapText: { color: '#6C63FF', fontSize: 14, fontWeight: '600', marginTop: 8 },
   spendButton: { alignItems: 'center' },
   spendButtonInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#6C63FF', alignItems: 'center', justifyContent: 'center', elevation: 6 },
   spendButtonLabel: { color: '#B8BEE5', fontSize: 11, letterSpacing: 1.5, marginTop: 8 },

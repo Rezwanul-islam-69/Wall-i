@@ -2,7 +2,7 @@
   "expo": {
     "name": "Wall-i",
     "slug": "wall-i",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -17,6 +17,11 @@
         "backgroundColor": "#0F0F1E"
       },
       "package": "com.rezwan.walli"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "887c4705-570b-44c1-b9db-c1ae3696810e"
+      }
     }
   }
 }

@@ -53,10 +53,6 @@ export default function ShoppingScreen() {
       Alert.alert('Invalid cost');
       return;
     }
-    if (cost > settings.maxTransactionLimit) {
-      Alert.alert('Limit exceeded', `Maximum amount per transaction is ${settings.currencySymbol} ${settings.maxTransactionLimit.toLocaleString()}`);
-      return;
-    }
     if (cost > balance) {
       Alert.alert('Insufficient Balance');
       return;

@@ -1,4 +1,3 @@
-// app/screens/StatisticsScreen.tsx
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -27,8 +26,6 @@ const C = {
   sub: '#A0A0B0',
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 function getMonthTxns(txns: Transaction[], month: Date) {
   return txns.filter((t) => {
     const d = new Date(t.date);
@@ -55,8 +52,6 @@ function buildWeeklyExpenses(txns: Transaction[]): number[] {
 function fmt(n: number) {
   return n.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
-// ─── Sub-components ─────────────────────────────────────────────────────────
 
 function SummaryCard({
   label,
@@ -123,8 +118,6 @@ function StatPill({
   );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
-
 export default function StatisticsScreen() {
   const [allTxns, setAllTxns] = useState<Transaction[]>([]);
   const [month, setMonth] = useState(new Date());
@@ -184,7 +177,6 @@ export default function StatisticsScreen() {
   return (
     <ScrollView style={s.container} contentContainerStyle={s.content}>
 
-      {/* ── Month Selector ── */}
       <View style={s.monthRow}>
         <TouchableOpacity onPress={prevMonth} style={s.monthBtn}>
           <Text style={s.monthArrow}>‹</Text>
@@ -195,13 +187,11 @@ export default function StatisticsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Top Summary Cards ── */}
       <View style={s.row}>
         <SummaryCard label="Deposited" amount={totalDeposit} color={C.green} symbol={settings.currencySymbol} />
         <SummaryCard label="Spent" amount={totalExpense} color={C.red} symbol={settings.currencySymbol} />
       </View>
 
-      {/* ── Net Card ── */}
       <View style={s.netCard}>
         <View>
           <Text style={s.netCardTitle}>Net This Month</Text>
@@ -212,7 +202,6 @@ export default function StatisticsScreen() {
         </Text>
       </View>
 
-      {/* ── Weekly Bar Chart ── */}
       <View style={s.card}>
         <Text style={s.cardTitle}>Weekly Spending</Text>
         {hasChartData ? (
@@ -248,7 +237,6 @@ export default function StatisticsScreen() {
         )}
       </View>
 
-      {/* ── Expense Breakdown ── */}
       <View style={s.card}>
         <Text style={s.cardTitle}>Expense Breakdown</Text>
         {totalExpense > 0 ? (
@@ -273,7 +261,6 @@ export default function StatisticsScreen() {
         )}
       </View>
 
-      {/* ── Transaction Count ── */}
       <View style={s.card}>
         <Text style={s.cardTitle}>Transaction Activity</Text>
         <View style={s.pillRow}>
@@ -299,7 +286,6 @@ export default function StatisticsScreen() {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
