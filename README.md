@@ -29,7 +29,8 @@
 | 💰 **Balance Tracker** | View current balance, log spending, and deposit funds |
 | 🛍️ **Shopping List** | Built-in checklist that deducts cost on item check-off |
 | 📊 **Statistics** | Monthly spending chart with category breakdown |
-| 🔐 **PIN Lock** | Secure the app with a personal PIN |
+|Upcoming|
+|🔐 **PIN Lock** | Secure the app with a personal PIN |
 | 📋 **Transaction History** | Browse, filter, and search past transactions |
 | 📤 **CSV Export** | Export transactions as CSV or plain text |
 | 🎨 **Dark Theme** | Sleek dark UI with smooth animations & haptic feedback |
