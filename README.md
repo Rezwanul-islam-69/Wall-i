@@ -122,7 +122,7 @@ wall-i/
 - [ ] UI polish — animations & haptic feedback
 - [ ] Transaction history filtering
 - [ ] CSV / text export
-- [ ] Multi-currency support
+- [x] Multi-currency support
 - [ ] Cloud backup / sync
 - [ ] Widget support
 
