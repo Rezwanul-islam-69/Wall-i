@@ -75,7 +75,7 @@
 - [Expo CLI](https://docs.expo.dev/get-started/installation/)
 - [Expo Go](https://expo.dev/client) app on your Android device
 
-### Installation
+### Installation (For contribution)
 
 ```bash
 # Clone the repo
